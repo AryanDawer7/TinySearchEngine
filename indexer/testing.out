@@ -1,0 +1,177 @@
+bash -v testing.sh
+module () {  _module_raw "$@" 2>&1
+}
+ml () {  module ml "$@"
+}
+_module_raw () {  eval `/usr/bin/tclsh8.6 /usr/lib/x86_64-linux-gnu/modulecmd.tcl bash "$@"`;
+ _mlstatus=$?;
+ return $_mlstatus
+}
+#!bin/bash
+#
+# testing.sh - script running tests 'indexer' module
+#
+# Outputs the result of each test
+#
+
+# Run integration test for the indexer
+
+##### Invalid Tests
+
+# 1. Test indexer with various invalid arguments.
+./indexer test.txt s3e3
+Input pageDirectory doesn't exist
+./indexer 2 3
+Input pageDirectory doesn't exist
+
+# 2. no arguments.
+./indexer
+Invalid number of arguments!
+Usage: ./indexer pageDirectory indexFilename
+
+# 3. one argument.
+./indexer ../data/toscrape
+Invalid number of arguments!
+Usage: ./indexer pageDirectory indexFilename
+
+# 4. three or more arguments.
+./indexer ../data/toscrape file test tester
+Invalid number of arguments!
+Usage: ./indexer pageDirectory indexFilename
+
+# 5. invalid pageDirectory (non-existent path).
+./indexer ../hello ../data/test1.index
+Input pageDirectory doesn't exist
+
+# 6. invalid pageDirectory (not a crawler directory).
+mkdir nonCrawlerDir
+
+./indexer nonCrawlerDir ../data/test1.index
+Given directory not created by crawler!
+
+rmdir nonCrawlerDir
+
+# 7. invalid indexFile (non-existent path)
+./indexer ../data/toscrape ../data/nonexistingpath/index.test
+Couldn't open ../data/nonexistingpath/index.test in write mode.
+Make sure given path exists and all directories and file allow write mode
+
+# 8. invalid indexFile (read-only directory)
+mkdir ../data/readOnlyDir
+chmod -R a-w ../data/readOnlyDir
+
+./indexer ../data/toscrape ../data/readonly_dir/toscrape.index
+Couldn't open ../data/readonly_dir/toscrape.index in write mode.
+Make sure given path exists and all directories and file allow write mode
+
+rmdir ../data/readOnlyDir
+
+# 9. invalid indexFile (existing, read-only file)
+touch ../data/readOnly.index
+chmod a-w ../data/readOnly.index
+
+./indexer ../data/toscrape ../data/readOnly.index
+Couldn't open ../data/readOnly.index in write mode.
+Make sure given path exists and all directories and file allow write mode
+
+rm -f ../data/readOnly.index
+
+##### Valid Tests with Valgrind
+
+## "toscrape" directory created by crawler at depth 1
+
+# Create toscrape with crawler
+mkdir ../data/toscrape
+../crawler/crawler http://cs50tse.cs.dartmouth.edu/tse/toscrape/index.html ../data/toscrape 1
+
+# Valid Test for indexer (Create index file for crawler's toscrape depth 1) with valgrind
+valgrind --leak-check=full --show-leak-kinds=all ./indexer ../data/toscrape ../data/toscrape.index
+==2619802== Memcheck, a memory error detector
+==2619802== Copyright (C) 2002-2017, and GNU GPL'd, by Julian Seward et al.
+==2619802== Using Valgrind-3.18.1 and LibVEX; rerun with -h for copyright info
+==2619802== Command: ./indexer ../data/toscrape ../data/toscrape.index
+==2619802== 
+==2619802== 
+==2619802== HEAP SUMMARY:
+==2619802==     in use at exit: 0 bytes in 0 blocks
+==2619802==   total heap usage: 2,335,794 allocs, 2,335,794 frees, 42,742,904,357 bytes allocated
+==2619802== 
+==2619802== All heap blocks were freed -- no leaks are possible
+==2619802== 
+==2619802== For lists of detected and suppressed errors, rerun with: -s
+==2619802== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
+
+# Valid test for indextest (Validate indexer output) with valgrind
+valgrind --leak-check=full --show-leak-kinds=all ./indextest ../data/toscrape.index ../data/toscrapeTest.index
+==2620126== Memcheck, a memory error detector
+==2620126== Copyright (C) 2002-2017, and GNU GPL'd, by Julian Seward et al.
+==2620126== Using Valgrind-3.18.1 and LibVEX; rerun with -h for copyright info
+==2620126== Command: ./indextest ../data/toscrape.index ../data/toscrapeTest.index
+==2620126== 
+==2620126== 
+==2620126== HEAP SUMMARY:
+==2620126==     in use at exit: 0 bytes in 0 blocks
+==2620126==   total heap usage: 19,454 allocs, 19,454 frees, 460,186 bytes allocated
+==2620126== 
+==2620126== All heap blocks were freed -- no leaks are possible
+==2620126== 
+==2620126== For lists of detected and suppressed errors, rerun with: -s
+==2620126== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
+
+# Valid test for indexcmp (Check if created index is correct)
+~/cs50-dev/shared/tse/indexcmp ../data/toscrape.index /thayerfs/home/f006gsd/cs50-dev/shared/tse/indices/toscrape-1.ndx
+
+# Valid test for indextest (Check if created indextest.c produced same outputFile as inputfile)
+~/cs50-dev/shared/tse/indexcmp ../data/toscrape.index ../data/toscrapeTest.index
+
+# should be 0
+echo $?
+0
+
+## "wikipedia" directory created by crawler at depth 1
+
+# Create wikipedia with crawler
+mkdir ../data/wikipedia
+mkdir: cannot create directory '../data/wikipedia': File exists
+../crawler/crawler http://cs50tse.cs.dartmouth.edu/tse/wikipedia/index.html ../data/wikipedia 1
+
+# Valid Test for indexer (Create index file for crawler's toscrape depth 1) with valgrind
+valgrind --leak-check=full --show-leak-kinds=all ./indexer ../data/wikipedia ../data/wikipedia.index
+==2620240== Memcheck, a memory error detector
+==2620240== Copyright (C) 2002-2017, and GNU GPL'd, by Julian Seward et al.
+==2620240== Using Valgrind-3.18.1 and LibVEX; rerun with -h for copyright info
+==2620240== Command: ./indexer ../data/wikipedia ../data/wikipedia.index
+==2620240== 
+==2620240== 
+==2620240== HEAP SUMMARY:
+==2620240==     in use at exit: 0 bytes in 0 blocks
+==2620240==   total heap usage: 1,571,998 allocs, 1,571,998 frees, 234,200,272,661 bytes allocated
+==2620240== 
+==2620240== All heap blocks were freed -- no leaks are possible
+==2620240== 
+==2620240== For lists of detected and suppressed errors, rerun with: -s
+==2620240== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
+
+# Valid test for indextest (Validate indexer output) with valgrind
+valgrind --leak-check=full --show-leak-kinds=all ./indextest ../data/wikipedia.index ../data/wikipediaTest.index
+==2622167== Memcheck, a memory error detector
+==2622167== Copyright (C) 2002-2017, and GNU GPL'd, by Julian Seward et al.
+==2622167== Using Valgrind-3.18.1 and LibVEX; rerun with -h for copyright info
+==2622167== Command: ./indextest ../data/wikipedia.index ../data/wikipediaTest.index
+==2622167== 
+==2622167== 
+==2622167== HEAP SUMMARY:
+==2622167==     in use at exit: 0 bytes in 0 blocks
+==2622167==   total heap usage: 39,134 allocs, 39,134 frees, 1,017,106 bytes allocated
+==2622167== 
+==2622167== All heap blocks were freed -- no leaks are possible
+==2622167== 
+==2622167== For lists of detected and suppressed errors, rerun with: -s
+==2622167== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
+
+# Valid test for indextest (Check if created indextest.c produced same outputFile as inputfile)
+~/cs50-dev/shared/tse/indexcmp ../data/wikipedia.index ../data/wikipediaTest.index
+
+# should be 0
+echo $?
+0

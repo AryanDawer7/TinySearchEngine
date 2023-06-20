@@ -1,0 +1,86 @@
+bash -v testing.sh
+module () {  _module_raw "$@" 2>&1
+}
+ml () {  module ml "$@"
+}
+_module_raw () {  eval `/usr/bin/tclsh8.6 /usr/lib/x86_64-linux-gnu/modulecmd.tcl bash "$@"`;
+ _mlstatus=$?;
+ return $_mlstatus
+}
+#!bin/bash
+#
+# testing.sh - script running tests 'crawler' module
+#
+# Outputs the result of each test
+#
+
+# make directories
+mkdir ../data
+mkdir ../data/hello ../data/letters0 ../data/letters1 ../data/letters2 ../data/letters3 ../data/toscrape
+
+# make binary files
+make
+make[1]: Entering directory '/thayerfs/home/f006gsd/cs50-dev/tse-AryanDawer7/crawler'
+make[1]: 'crawler' is up to date.
+make[1]: Leaving directory '/thayerfs/home/f006gsd/cs50-dev/tse-AryanDawer7/crawler'
+
+# no arguments (too few)
+./crawler
+Invalid number of arguments. Usage: ./crawler seedURL pageDirectory maxDepth
+
+# external link
+./crawler http://www.google.com ../data/letters1 1
+http://www.google.com could not be normalized, it is either not internal or invalid!
+
+# invalid depths                                                                 
+./crawler http://cs50tse.cs.dartmouth.edu/tse/wikipedia/index.html ../data/letters1 -1                                                                          
+maxDepth must be an integer!
+./crawler http://cs50tse.cs.dartmouth.edu/tse/wikipedia/index.html ../data/letters1 11 
+maxDepth must be an integer in the range [1,10]!
+
+# non-existent directory
+./crawler http://cs50tse.cs.dartmouth.edu/tse/wikipedia/index.html ../data/nonExistentDir 1
+Input pageDirectory couldn't be opened
+
+# too many args
+./crawler http://cs50tse.cs.dartmouth.edu/tse/wikipedia/index.html ../data/letters1 1 test
+Invalid number of arguments. Usage: ./crawler seedURL pageDirectory maxDepth
+
+# valid server with nonexistent URL
+./crawler http://cs50tse.cs.dartmouth.edu/tse/hello.html ../data/hello 2
+Failed to get webpage info.
+../data/hello/.crawler
+
+#valgrind test
+valgrind --leak-check=full --show-leak-kinds=all ./crawler http://cs50tse.cs.dartmouth.edu/tse/toscrape/index.html ../data/toscrape 1
+==724632== Memcheck, a memory error detector
+==724632== Copyright (C) 2002-2017, and GNU GPL'd, by Julian Seward et al.
+==724632== Using Valgrind-3.18.1 and LibVEX; rerun with -h for copyright info
+==724632== Command: ./crawler http://cs50tse.cs.dartmouth.edu/tse/toscrape/index.html ../data/toscrape 1
+==724632== 
+../data/toscrape/.crawler
+==724632== 
+==724632== HEAP SUMMARY:
+==724632==     in use at exit: 0 bytes in 0 blocks
+==724632==   total heap usage: 2,300,624 allocs, 2,300,624 frees, 42,743,221,224 bytes allocated
+==724632== 
+==724632== All heap blocks were freed -- no leaks are possible
+==724632== 
+==724632== For lists of detected and suppressed errors, rerun with: -s
+==724632== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
+
+# valid test with depth 0
+./crawler http://cs50tse.cs.dartmouth.edu/tse/letters/index.html ../data/letters0 0
+../data/letters0/.crawler
+
+# valid test with depth 1
+./crawler http://cs50tse.cs.dartmouth.edu/tse/letters/index.html ../data/letters1 1
+../data/letters1/.crawler
+
+# valid test with depth 2
+./crawler http://cs50tse.cs.dartmouth.edu/tse/letters/index.html ../data/letters2 2
+../data/letters2/.crawler
+
+# valid test with depth 3
+./crawler http://cs50tse.cs.dartmouth.edu/tse/letters/index.html ../data/letters3 3
+../data/letters3/.crawler

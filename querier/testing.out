@@ -1,0 +1,116 @@
+bash -v testing.sh
+module () {  _module_raw "$@" 2>&1
+}
+ml () {  module ml "$@"
+}
+_module_raw () {  eval `/usr/bin/tclsh8.6 /usr/lib/x86_64-linux-gnu/modulecmd.tcl bash "$@"`;
+ _mlstatus=$?;
+ return $_mlstatus
+}
+#!bin/bash
+#
+# testing.sh - script running tests 'querier' module
+#
+# Outputs the result of each test
+#
+
+# Setup
+# mkdir ../data
+# mkdir ../data/toscrape
+# ../crawler/crawler http://cs50tse.cs.dartmouth.edu/tse/toscrape/index.html ../data/toscrape 1
+# ../indexer/indexer ../data/toscrape ../data/toscrape.index
+
+# Testing for all sorts of invalid inputs (syntax/logic) given in the requirement spec
+./querier ../data/toscrape ../data/toscrape.index < invalidQueries
+Error: 'and' cannot be first
+Error: 'or' cannot be first
+Error: 'and' cannot be first
+Error: 'or' cannot be first
+Error: 'or' cannot be last
+Error: 'and' cannot be last
+Error: 'and' and 'or' cannot be adjacent
+Error: 'and' and 'and' cannot be adjacent
+Error: 'or' and 'and' cannot be adjacent
+Error: bad character '!' in query.
+Error: bad character '(' in query.
+
+# FuzzTesting with 10 queries and seed 11111
+./querier ../data/toscrape ../data/toscrape.index < fuzzQueries
+Query: walking and alarms invisible hannibal
+No Matching documents found...
+-----------------------------------------------
+Query: publication and victorious hollow and france
+No Matching documents found...
+-----------------------------------------------
+Query: mouths and rage vol allowed or wears seriously
+No Matching documents found...
+-----------------------------------------------
+Query: evolution
+Matches 1 documents (ranked):
+score    2 doc   18: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/sapiens-a-brief-history-of-humankind_996/index.html
+-----------------------------------------------
+Query: angels or race shrubby and ago
+Matches 1 documents (ranked):
+score    2 doc   56: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/add-a-comment_18/index.html
+-----------------------------------------------
+Query: une
+Matches 1 documents (ranked):
+score    6 doc   20: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/soumission_998/index.html
+-----------------------------------------------
+Query: trip
+Matches 1 documents (ranked):
+score    1 doc    3: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/its-only-the-himalayas_981/index.html
+-----------------------------------------------
+Query: parricides activist
+No Matching documents found...
+-----------------------------------------------
+Query: above or promise
+Matches 3 documents (ranked):
+score    2 doc   19: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/sharp-objects_997/index.html
+score    1 doc   53: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/young-adult_21/index.html
+score    1 doc   37: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/thriller_37/index.html
+-----------------------------------------------
+Query: grand and bands
+No Matching documents found...
+-----------------------------------------------
+
+# Valgrind testing
+
+# Test 1 (Invalid query)
+valgrind --leak-check=full --show-leak-kinds=all echo "   above OR promise AND    " | ./querier ../data/toscrape ../data/toscrape.index
+==3715630== Memcheck, a memory error detector
+==3715630== Copyright (C) 2002-2017, and GNU GPL'd, by Julian Seward et al.
+==3715630== Using Valgrind-3.18.1 and LibVEX; rerun with -h for copyright info
+==3715630== Command: echo \ \ \ above\ OR\ promise\ AND\ \ \ \ 
+==3715630== 
+Error: 'and' cannot be last
+==3715630== 
+==3715630== HEAP SUMMARY:
+==3715630==     in use at exit: 0 bytes in 0 blocks
+==3715630==   total heap usage: 3 allocs, 3 frees, 4,140 bytes allocated
+==3715630== 
+==3715630== All heap blocks were freed -- no leaks are possible
+==3715630== 
+==3715630== For lists of detected and suppressed errors, rerun with: -s
+==3715630== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
+
+# Test 2 (Long valid query)
+valgrind --leak-check=full --show-leak-kinds=all echo "angels OR race shrubby AND ago" | ./querier ../data/toscrape ../data/toscrape.index
+==3715632== Memcheck, a memory error detector
+==3715632== Copyright (C) 2002-2017, and GNU GPL'd, by Julian Seward et al.
+==3715632== Using Valgrind-3.18.1 and LibVEX; rerun with -h for copyright info
+==3715632== Command: echo angels\ OR\ race\ shrubby\ AND\ ago
+==3715632== 
+Query: angels or race shrubby and ago
+Matches 1 documents (ranked):
+score    2 doc   56: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/add-a-comment_18/index.html
+-----------------------------------------------
+==3715632== 
+==3715632== HEAP SUMMARY:
+==3715632==     in use at exit: 0 bytes in 0 blocks
+==3715632==   total heap usage: 3 allocs, 3 frees, 4,140 bytes allocated
+==3715632== 
+==3715632== All heap blocks were freed -- no leaks are possible
+==3715632== 
+==3715632== For lists of detected and suppressed errors, rerun with: -s
+==3715632== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
