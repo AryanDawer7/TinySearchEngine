@@ -7,10 +7,10 @@ Tiny Search Engine project was created for Dartmouth CS50 class in Spring 2023. 
 
 Please see individual directories for more information.
 
-To build, run `make`.
+To build, run `make`
 
-To test, run `make test`.
+To test, run `make test`
 
-To clean up, run `make clean`.
+To clean up, run `make clean`
 
 CS50 Playground: [http://cs50tse.cs.dartmouth.edu/tse/](http://cs50tse.cs.dartmouth.edu/tse/)
